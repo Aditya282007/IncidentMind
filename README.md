@@ -44,6 +44,9 @@ Each agent has a distinct role and communicates only with the next agent in the 
 - npm or yarn
 - [Ollama](https://ollama.ai/) (for backend mode with real LLM calls)
 
+### Demo Video
+- https://drive.google.com/drive/folders/1aSrS6b8E8iLq8nU3DerQeHccDmRIJABU?usp=sharing
+
 ### Installation
 
 1. Clone the repository
