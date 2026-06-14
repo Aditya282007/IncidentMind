@@ -10,6 +10,17 @@ console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('__dirname:', __dirname);
 console.log('process.cwd():', process.cwd());
 
+// Validate required environment variables
+const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
+const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:latest';
+
+if (!process.env.OLLAMA_HOST) {
+  console.warn('WARNING: OLLAMA_HOST not set, using default:', ollamaHost);
+}
+if (!process.env.OLLAMA_MODEL) {
+  console.warn('WARNING: OLLAMA_MODEL not set, using default:', ollamaModel);
+}
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -90,17 +101,15 @@ const AGENTS = {
 
     Only output valid JSON, no additional text.`
   },
-  COMMUNICATOR: {
-    name: 'Communicator',
-    role: 'Notifier',
-    systemPrompt: `You are the Communicator agent in IncidentMind. Your role is to draft notifications and reports based on the patcher's recommendations.
-    You receive the Patcher's output and create clear, actionable communications for the on-call team.
+  ORCHESTRATOR: {
+    name: 'Orchestrator',
+    role: 'Controller',
+    systemPrompt: `You are the Orchestrator agent in IncidentMind. Your role is to receive triggers, sequence agents, and maintain incident context.
+    You receive the initial trigger/incident and coordinate the agent chain.
     Output should be a structured JSON with:
-    - slackMessage: string formatted for Slack (can include markdown)
-    - incidentReport: string with detailed incident report
-    - runbookEntry: string suggesting runbook documentation
-    - priority: string ('low', 'medium', 'high', 'critical')
-    - notificationChannels: array of strings ('slack', 'email', 'pagerduty', etc.)
+    - sequence: array of agent names in the order they should be executed (from: 'Watcher', 'Diagnoser', 'Patcher', 'Communicator')
+    - context: any additional context to maintain throughout the chain
+    - instructions: any specific instructions for the chain execution
 
     Only output valid JSON, no additional text.`
   }
@@ -110,7 +119,23 @@ const AGENTS = {
 async function runAgentChain(incident) {
   console.log(`Starting incident analysis for: ${incident.title}`);
 
-  // Step 1: Watcher - Detect anomaly
+  // Step 1: Orchestrator - Determine sequence and context
+  const orchestratorPrompt = `
+    Incident triggered: ${incident.title}
+    Description: ${incident.description}
+    Metrics: ${JSON.stringify(incident.metrics, null, 2)}
+
+    Determine the appropriate agent sequence and any initial context for handling this incident.`;
+
+  const orchestratorResult = await callOllamaAPI(AGENTS.ORCHESTRATOR, orchestratorPrompt);
+  console.log('Orchestrator result:', orchestratorResult);
+
+  // Use the sequence from orchestrator if provided, otherwise default
+  const agentSequence = orchestratorResult.sequence || ['Watcher', 'Diagnoser', 'Patcher', 'Communicator'];
+  const context = orchestratorResult.context || {};
+  const instructions = orchestratorResult.instructions || '';
+
+  // Step 2: Watcher - Detect anomaly
   const watcherPrompt = `
     Metrics data:
     ${JSON.stringify(incident.metrics, null, 2)}
@@ -127,11 +152,12 @@ async function runAgentChain(incident) {
       incidentId: incident.id,
       status: 'no_action_needed',
       message: 'No significant anomaly detected',
+      orchestrator: orchestratorResult,
       watcher: watcherResult
     };
   }
 
-  // Step 2: Diagnoser - Find root cause
+  // Step 3: Diagnoser - Find root cause
   const diagnoserPrompt = `
     Watcher analysis:
     ${JSON.stringify(watcherResult, null, 2)}
@@ -141,12 +167,14 @@ async function runAgentChain(incident) {
 
     Incident description: ${incident.description}
 
+    ${instructions}
+
     Analyze this to determine the root cause.`;
 
   const diagnoserResult = await callOllamaAPI(AGENTS.DIAGNOSER, diagnoserPrompt);
   console.log('Diagnoser result:', diagnoserResult);
 
-  // Step 3: Patcher - Generate fix
+  // Step 4: Patcher - Generate fix
   const patcherPrompt = `
     Diagnoser analysis:
     ${JSON.stringify(diagnoserResult, null, 2)}
@@ -162,7 +190,7 @@ async function runAgentChain(incident) {
   const patcherResult = await callOllamaAPI(AGENTS.PATCHER, patcherPrompt);
   console.log('Patcher result:', patcherResult);
 
-  // Step 4: Communicator - Draft notifications
+  // Step 5: Communicator - Draft notifications
   const communicatorPrompt = `
     Patcher recommendations:
     ${JSON.stringify(patcherResult, null, 2)}
@@ -179,11 +207,13 @@ async function runAgentChain(incident) {
     Draft appropriate notifications and reports.`;
 
   const communicatorResult = await callOllamaAPI(AGENTS.COMMUNICATOR, communicatorPrompt);
+  console.log('Communicator result:', communicatorResult);
 
   return {
     incidentId: incident.id,
     status: 'analyzed',
     timestamp: new Date().toISOString(),
+    orchestrator: orchestratorResult,
     watcher: watcherResult,
     diagnoser: diagnoserResult,
     patcher: patcherResult,
@@ -222,9 +252,6 @@ function parseAgentJsonResponse(rawResponse, agentName) {
 
 // Function to call Ollama API (local LLM)
 async function callOllamaAPI(agent, prompt) {
-  const ollamaHost = process.env.OLLAMA_HOST || 'http://localhost:11434';
-  const ollamaModel = process.env.OLLAMA_MODEL || 'qwen3:latest';
-
   const fullPrompt = `${agent.systemPrompt}\n\n${prompt}`;
 
   const response = await fetch(`${ollamaHost}/api/generate`, {
@@ -274,8 +301,28 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
   // Process the incident analysis and stream results
   (async () => {
     try {
-      // Step 1: Watcher
-      console.error(' About to write agent_start for Watcher');
+      // Step 1: Orchestrator
+      console.log(' About to write agent_start for Orchestrator');
+      res.write(`data: ${JSON.stringify({ type: 'agent_start', agent: 'Orchestrator' })}\n\n`);
+
+      const orchestratorPrompt = `
+        Incident triggered: ${incident.title}
+        Description: ${incident.description}
+        Metrics: ${JSON.stringify(incident.metrics, null, 2)}
+
+        Determine the appropriate agent sequence and any initial context for handling this incident.`;
+
+      console.log(' About to call callOllamaAPI for Orchestrator');
+      const orchestratorResult = await callOllamaAPI(AGENTS.ORCHESTRATOR, orchestratorPrompt);
+
+      res.write(`data: ${JSON.stringify({ type: 'agent_complete', agent: 'Orchestrator', result: orchestratorResult })}\n\n`);
+
+      // Use the sequence from orchestrator if provided, otherwise default
+      const agentSequence = orchestratorResult.sequence || ['Watcher', 'Diagnoser', 'Patcher', 'Communicator'];
+      const context = orchestratorResult.context || {};
+      const instructions = orchestratorResult.instructions || '';
+
+      // Step 2: Watcher
       res.write(`data: ${JSON.stringify({ type: 'agent_start', agent: 'Watcher' })}\n\n`);
 
       const watcherPrompt = `
@@ -286,7 +333,6 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
 
         Determine if this represents an anomaly requiring attention.`;
 
-      console.log(' About to call callOllamaAPI for Watcher');
       const watcherResult = await callOllamaAPI(AGENTS.WATCHER, watcherPrompt);
 
       if (!watcherResult.anomalyDetected || watcherResult.confidence < 0.3) {
@@ -294,6 +340,7 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
           incidentId: incident.id,
           status: 'no_action_needed',
           message: 'No significant anomaly detected',
+          orchestrator: orchestratorResult,
           watcher: watcherResult
         }})}\n\n`);
         res.end();
@@ -302,7 +349,7 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
 
       res.write(`data: ${JSON.stringify({ type: 'agent_complete', agent: 'Watcher', result: watcherResult })}\n\n`);
 
-      // Step 2: Diagnoser
+      // Step 3: Diagnoser
       res.write(`data: ${JSON.stringify({ type: 'agent_start', agent: 'Diagnoser' })}\n\n`);
 
       const diagnoserPrompt = `
@@ -314,13 +361,15 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
 
         Incident description: ${incident.description}
 
+        ${instructions}
+
         Analyze this to determine the root cause.`;
 
       const diagnoserResult = await callOllamaAPI(AGENTS.DIAGNOSER, diagnoserPrompt);
 
       res.write(`data: ${JSON.stringify({ type: 'agent_complete', agent: 'Diagnoser', result: diagnoserResult })}\n\n`);
 
-      // Step 3: Patcher
+      // Step 4: Patcher
       res.write(`data: ${JSON.stringify({ type: 'agent_start', agent: 'Patcher' })}\n\n`);
 
       const patcherPrompt = `
@@ -339,7 +388,7 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
 
       res.write(`data: ${JSON.stringify({ type: 'agent_complete', agent: 'Patcher', result: patcherResult })}\n\n`);
 
-      // Step 4: Communicator
+      // Step 5: Communicator
       res.write(`data: ${JSON.stringify({ type: 'agent_start', agent: 'Communicator' })}\n\n`);
 
       const communicatorPrompt = `
@@ -366,6 +415,7 @@ app.get('/api/incidents/:id/analyze', (req, res) => {
         incidentId: incident.id,
         status: 'analyzed',
         timestamp: new Date().toISOString(),
+        orchestrator: orchestratorResult,
         watcher: watcherResult,
         diagnoser: diagnoserResult,
         patcher: patcherResult,
