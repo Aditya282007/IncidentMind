@@ -1,287 +1,317 @@
 import {
-  ArrowLeft,
-  BarChart3,
-  Database,
-  ExternalLink,
-  Eye,
-  FileText,
-  ListFilter,
-  Lock,
-  Server,
-  Settings2,
-  Share2,
-  Sparkles,
+  Eye, MessageSquare, Search, Wrench, Download, Share2,
+  RotateCcw, ChevronRight, Copy, CheckSquare, Square,
+  Clock, AlertTriangle, CheckCircle, ExternalLink, MessageCircle
 } from 'lucide-react';
-import MemoryChart from '../components/MemoryChart';
 
-interface Props {
-  onBack: () => void;
+interface IncidentDetailProps {
+  onNavigate: (page: 'dashboard' | 'incidents' | 'history' | 'reports' | 'analytics' | 'settings' | 'incident-detail') => void;
 }
 
-const timelineItems = [
-  { time: '00:00', agent: 'Watcher', agentColor: '#00e5c3', title: 'Latency spike detected', desc: 'Global latency crossed 500ms threshold.' },
-  { time: '00:15', agent: 'Diagnoser', agentColor: '#f97316', title: 'OOM state identified', desc: 'Linked latency to Redis node-04 memory.' },
-  { time: '00:30', agent: 'Orchestrator', agentColor: '#a78bfa', title: 'Initiated recovery', desc: 'Hard restart and cache eviction sweep.' },
-  { time: '01:20', agent: 'Patcher', agentColor: '#60a5fa', title: 'Memory limit adjusted', desc: 'Increased max-memory to 4GB temporarily.' },
-  { time: '01:45', agent: 'Communicator', agentColor: '#34d399', title: 'Stability confirmed', desc: 'Internal health checks passed 5/5.' },
+const evidenceRows = [
+  { time: '14:21:09 AM', source: 'worker-code-A4', msg: 'CPU usage 98.2% on core 4...', level: 'CRT' },
+  { time: '14:21:09', source: 'api-server-2', msg: 'Response time latency > 320ms', level: 'WARN' },
+  { time: '14:21:09 AM', source: 'orchestrator', msg: 'Initiating service restart on pod-7b3', level: 'INFO' },
 ];
 
-const serviceImpact = [
-  { name: 'API Gateway', icon: Server, status: 'HEALTHY', color: 'green', highlighted: false },
-  { name: 'Auth Service', icon: Lock, status: 'DEGRADED', color: 'amber', highlighted: false },
-  { name: 'Redis Cluster', icon: Database, status: 'FAILED', color: 'red', highlighted: true },
-  { name: 'User DB', icon: ListFilter, status: 'INACTIVE', color: 'gray', highlighted: false },
-];
+const levelColor = (l: string) => {
+  if (l === 'CRT') return 'text-red-400 bg-red-500/10 border-red-500/25';
+  if (l === 'WARN') return 'text-amber-400 bg-amber-500/10 border-amber-500/25';
+  return 'text-blue-400 bg-blue-500/10 border-blue-500/25';
+};
 
-const rawLogs = [
-  { time: '[00:30]', cmd: 'EXECUTING node_restart --force', highlight: true },
-  { time: '[00:31]', cmd: 'SIGTERM sent to pid 4921', highlight: false },
-  { time: '[00:45]', cmd: 'node-04 status: BOOTING', highlight: false },
-  { time: '[01:20]', cmd: 'PATCHING config/redis.conf', highlight: true },
-  { time: '[01:45]', cmd: 'HEALTH_CHECK: PASS', highlight: false },
-];
-
-function CircularProgress({ pct }: { pct: number }) {
-  const r = 40;
+function ProgressRing({ pct }: { pct: number }) {
+  const r = 22;
   const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
   return (
-    <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex items-center justify-center flex-shrink-0">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#1f1f1f" strokeWidth="8" />
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#00e5c3" strokeWidth="8"
-          strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-white font-bold text-base sm:text-lg leading-none">{pct}%</span>
-        <span className="text-gray-500 text-[9px] sm:text-[10px] mt-0.5">MATCH</span>
-      </div>
-    </div>
+    <svg width={56} height={56} className="-rotate-90">
+      <circle cx={28} cy={28} r={r} fill="none" stroke="#1e2d4d" strokeWidth={4} />
+      <circle
+        cx={28} cy={28} r={r}
+        fill="none"
+        stroke="#22d3ee"
+        strokeWidth={4}
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+      />
+      <text
+        x={28} y={28}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        className="rotate-90"
+        style={{ fontSize: 10, fill: '#22d3ee', fontFamily: 'JetBrains Mono', transform: 'rotate(90deg)', transformOrigin: '28px 28px' }}
+      >
+        {pct}%
+      </text>
+    </svg>
   );
 }
 
-function ResolutionTimeline() {
+export default function IncidentDetail({ onNavigate }: IncidentDetailProps) {
   return (
-    <div className="card p-4 sm:p-5">
-      <h3 className="text-white font-semibold mb-4 sm:mb-5">Resolution Timeline</h3>
-      <div className="relative pl-5 sm:pl-6">
-        <div className="absolute left-[7px] top-1 bottom-1 w-px bg-[#2a2a2a]" />
-        <div className="space-y-4 sm:space-y-5">
-          {timelineItems.map((item, i) => (
-            <div key={i} className="relative">
-              <div
-                className="absolute -left-[18px] sm:-left-[19px] top-0.5 w-3 h-3 rounded-full border-2 bg-[#0f0f0f]"
-                style={{ borderColor: item.agentColor }}
-              />
-              <div className="mb-0.5 flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] text-gray-500 font-mono">{item.time}</span>
-                <span className="text-[11px]" style={{ color: item.agentColor }}>— {item.agent}</span>
-              </div>
-              <div className="text-white text-sm font-semibold">{item.title}</div>
-              <div className="text-gray-400 text-xs mt-0.5">{item.desc}</div>
-            </div>
-          ))}
+    <div className="min-h-screen bg-[#05081a] pt-12 pb-8">
+      <div className="max-w-6xl mx-auto px-6 pt-5">
+
+        {/* Breadcrumb + actions */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
+            <button
+              onClick={() => onNavigate('incidents')}
+              className="hover:text-cyan-400 transition-colors"
+            >
+              INCIDENTS
+            </button>
+            <ChevronRight size={10} />
+            <span className="text-slate-300">INCIDENT-001</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
+              <Download size={11} />
+              Export PDF
+            </button>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
+              <Share2 size={11} />
+              Share Report
+            </button>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-amber-500/30 text-amber-400 text-[11px] hover:bg-amber-500/10 transition-colors">
+              <RotateCcw size={11} />
+              Reopen Incident
+            </button>
+          </div>
         </div>
-      </div>
-    </div>
-  );
-}
 
-export default function IncidentDetail({ onBack }: Props) {
-  return (
-    <div className="min-h-screen bg-[#0f0f0f] pt-[52px]">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-6">
-        {/* Back */}
-        <button
-          onClick={onBack}
-          className="flex items-center gap-1.5 text-gray-400 hover:text-gray-200 text-sm transition-colors mb-4 sm:mb-5"
-        >
-          <ArrowLeft size={15} />
-          Back to Dashboard
-        </button>
+        {/* Incident header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-2xl font-bold text-white">CPU Spike Detected</h1>
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-[10px] font-semibold">
+              <CheckCircle size={9} />
+              Resolved
+            </span>
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-semibold">
+              <AlertTriangle size={9} />
+              Critical
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
+            <span>Incident-001</span>
+            <span className="text-slate-600">•</span>
+            <Clock size={10} />
+            <span>Oct 24, 2023 - 14:22:10 UTC</span>
+            <span className="text-slate-600">•</span>
+            <span>Resolution Time: <span className="text-green-400">12m 45s</span></span>
+          </div>
+        </div>
 
-        {/* Header */}
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between mb-5 sm:mb-6">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-              <h1 className="text-white font-extrabold text-xl sm:text-2xl leading-tight">
-                #INC-492: Redis OOM Recovery
-              </h1>
-              <span className="text-xs font-bold tracking-wider px-2.5 py-1 rounded-full bg-green-900/40 text-green-400 border border-green-700/40 whitespace-nowrap">
-                RESOLVED
-              </span>
-              <span className="text-xs font-bold tracking-wider px-2.5 py-1 rounded-full bg-red-900/30 text-red-400 border border-red-700/40 whitespace-nowrap">
-                CRITICAL
-              </span>
+        {/* Agent cards 2x2 */}
+        <div className="grid grid-cols-2 gap-4 mb-5">
+
+          {/* Watcher Analysis */}
+          <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+                  <Eye size={15} className="text-cyan-400" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold text-white">Watcher Analysis</div>
+                  <div className="text-[10px] text-slate-500">Automated Ingestion & Monitoring</div>
+                </div>
+              </div>
+              <ProgressRing pct={98} />
             </div>
-            <p className="text-gray-400 text-sm">
-              Incident triggered by node-04 memory threshold violation. Resolution time:{' '}
-              <strong className="text-white">1m 45s</strong>
+            <div className="grid grid-cols-2 gap-3 mb-3 text-[10px]">
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Affected Components</div>
+                <div className="text-slate-300 font-mono">api-server-2</div>
+                <div className="text-slate-300 font-mono">worker-make-40</div>
+              </div>
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Threshold Violation</div>
+                <div className="text-red-400 font-mono">CPU Saturation &gt; 95%</div>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Detected sustained CPU saturation across multiple clusters. The primary spike originated from
+              worker-code-A4, causing cascade latency in the api-server-2 load balancer group. Metrics indicate
+              a non-linear growth in execution time for the processing queue.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3 xl:flex-shrink-0">
-            <button className="bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#444] text-white text-sm font-medium px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
-              <Eye size={14} />
-              Review Agent Decisions
-            </button>
-            <button className="bg-[#00e5c3] hover:bg-[#00ccad] text-[#0a1f1c] text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap">
-              <FileText size={14} />
-              View Post-Mortem
-            </button>
+
+          {/* Communicator */}
+          <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center">
+                <MessageSquare size={15} className="text-blue-400" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">Communicator</div>
+                <div className="flex items-center gap-1.5">
+                  <MessageCircle size={9} className="text-slate-500" />
+                  <span className="text-[10px] text-slate-500">Slack Message Preview</span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded bg-[#080d1f] border border-[#1e2d4d] p-3 mb-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <div className="w-3 h-3 rounded-sm bg-[#611f69]" />
+                <span className="text-[10px] text-slate-500 font-mono">Slack #incidents</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                *CRITICAL: CPU Spike on api-server-2 has been mitigated. Service restarted and scaled.*
+              </p>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Actions Log</div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <CheckCircle size={11} className="text-green-400 shrink-0" />
+                  <span className="text-slate-300">Automated post-mortem generated.</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <CheckCircle size={11} className="text-green-400 shrink-0" />
+                  <span className="text-slate-300">Updated INC-002 with leak patterns.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Diagnoser */}
+          <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                <Search size={15} className="text-amber-400" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">Diagnoser</div>
+                <div className="text-[10px] text-slate-500">Root Cause Investigation</div>
+              </div>
+            </div>
+            <div className="mb-3">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Root Cause</div>
+              <div className="text-sm font-semibold text-amber-400 font-mono">Memory leak in worker-service-v2.1</div>
+              <p className="text-[11px] text-slate-400 mt-1.5 leading-relaxed">
+                High concurrent requests combined with inefficient garbage collection cycles lead to
+                heap exhaustion.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-[10px] mb-3">
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Impacted Service</div>
+                <div className="text-slate-300 font-mono">worker-service</div>
+              </div>
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Likely Impact</div>
+                <div className="text-amber-400 font-mono">Service Latency</div>
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Investigation Steps</div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <CheckSquare size={11} className="text-green-400 shrink-0" />
+                  <span className="text-slate-300">Heap dump analysis completed</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Square size={11} className="text-slate-600 shrink-0" />
+                  <span className="text-slate-500">Thread stack trace inspection</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Patcher */}
+          <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                <Wrench size={15} className="text-green-400" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">Patcher</div>
+                <div className="text-[10px] text-slate-500">Mitigation & Remediation</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-[10px] mb-3">
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Est. Remediation Time</div>
+                <div className="text-cyan-400 font-mono text-base font-bold">2m 45s</div>
+              </div>
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Risk Level</div>
+                <div className="text-green-400 font-mono">Low (Auto)</div>
+              </div>
+            </div>
+            <div className="mb-3">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Recommended Commands</div>
+              <div className="relative rounded bg-[#080d1f] border border-[#1e2d4d] p-2.5">
+                <pre className="text-[10px] text-slate-300 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
+{`kubectl rollout restart deployment/worker-service
+hpa scale up --min-h`}
+                </pre>
+                <button className="absolute top-2 right-2 p-1 rounded hover:bg-white/5 transition-colors">
+                  <Copy size={10} className="text-slate-500" />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-[10px]">
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Fix Type</div>
+                <div className="text-slate-300">Automated Scaling</div>
+              </div>
+              <div>
+                <div className="text-slate-500 uppercase tracking-wider mb-1">Rollback Plan</div>
+                <div className="text-amber-400 font-mono">Revert to v2.0-stable</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Main grid — stacks on mobile, side-by-side on xl */}
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-4 sm:gap-5">
-          {/* Left column */}
-          <div className="space-y-4 sm:space-y-5">
-            {/* AI Root Cause Analysis */}
-            <div className="card p-4 sm:p-6">
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <Sparkles size={16} className="text-[#00e5c3] flex-shrink-0" />
-                    <h2 className="text-white font-semibold text-sm sm:text-base">AI Root Cause Analysis</h2>
-                  </div>
-                  <p className="text-gray-400 text-xs mt-1">Autonomous diagnosis completed in 15 seconds.</p>
-                </div>
-                <CircularProgress pct={98} />
-              </div>
-              <div className="bg-[#111] border border-[#2a2a2a] rounded-lg p-4 sm:p-5 mt-2">
-                <p className="text-gray-300 text-xs sm:text-sm leading-loose italic">
-                  "Memory exhaustion detected in{' '}
-                  <code className="text-[#00e5c3] bg-[#0d2d24] px-1.5 py-0.5 rounded text-xs not-italic font-mono">
-                    Redis Cluster node-04
-                  </code>{' '}
-                  due to an unexpected surge in session data keys originating from the Auth Service (v2.4.1).
-                  Latency spike correlated with a misconfigured TTL policy on the session-store namespace."
-                </p>
-              </div>
-            </div>
-
-            {/* Service Impact Map */}
-            <div className="card p-4 sm:p-6">
-              <div className="flex items-center gap-2 mb-4 sm:mb-5">
-                <Sparkles size={16} className="text-[#00e5c3]" />
-                <h2 className="text-white font-semibold text-sm sm:text-base">Service Impact Map</h2>
-              </div>
-              <div className="bg-[#111] border border-[#2a2a2a] rounded-xl p-4 sm:p-6">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {serviceImpact.map((svc) => {
-                    const Icon = svc.icon;
-                    return (
-                      <div key={svc.name} className="flex flex-col items-center gap-2 sm:gap-3">
-                        <div
-                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center border ${
-                            svc.highlighted
-                              ? 'bg-red-950/20 border-red-600/60'
-                              : 'bg-[#1a1a1a] border-[#2a2a2a]'
-                          }`}
-                        >
-                          <Icon
-                            size={22}
-                            className={svc.highlighted ? 'text-red-400' : 'text-gray-400'}
-                          />
-                        </div>
-                        <div className="text-center">
-                          <div className={`text-xs font-medium mb-1.5 ${svc.highlighted ? 'text-red-400' : 'text-gray-300'}`}>
-                            {svc.name}
-                          </div>
-                          <span
-                            className={`text-[9px] font-bold tracking-wider px-1.5 sm:px-2 py-0.5 rounded ${
-                              svc.color === 'green'
-                                ? 'bg-green-900/40 text-green-400'
-                                : svc.color === 'amber'
-                                ? 'bg-amber-900/40 text-amber-400'
-                                : svc.color === 'red'
-                                ? 'bg-red-900/40 text-red-400'
-                                : 'bg-[#1a1a1a] text-gray-500'
-                            }`}
-                          >
-                            {svc.status}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Memory Chart + Raw Logs */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-              <div className="card p-4 sm:p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#00e5c3] animate-pulse" />
-                    <span className="text-white text-sm font-medium">Memory Usage (node-04)</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] bg-[#1a1a1a] border border-[#333] text-gray-300 px-2 py-0.5 rounded font-mono">
-                      LIVE
+        {/* Related Evidence */}
+        <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#1e2d4d]">
+            <span className="text-[11px] font-semibold text-slate-200 uppercase tracking-wider">Related Evidence</span>
+            <button className="flex items-center gap-1 text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors">
+              <ExternalLink size={10} />
+              View full log
+            </button>
+          </div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-[#1e2d4d]">
+                {['Timestamp', 'Source', 'Message', 'Level'].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-[10px] font-medium text-slate-500 uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {evidenceRows.map((row, i) => (
+                <tr key={i} className="border-b border-[#1e2d4d]/50 hover:bg-white/2 transition-colors">
+                  <td className="px-4 py-2.5 text-[11px] font-mono text-slate-400">{row.time}</td>
+                  <td className="px-4 py-2.5 text-[11px] font-mono text-cyan-400">{row.source}</td>
+                  <td className="px-4 py-2.5 text-[11px] text-slate-300">{row.msg}</td>
+                  <td className="px-4 py-2.5">
+                    <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded border ${levelColor(row.level)}`}>
+                      {row.level}
                     </span>
-                    <span className="text-red-400 text-xs font-semibold">98.4% Max</span>
-                  </div>
-                </div>
-                <div className="h-24 sm:h-28">
-                  <MemoryChart />
-                </div>
-              </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-              <div className="card p-4 sm:p-5">
-                <h3 className="text-white text-sm font-medium mb-3">Raw Agent Logs</h3>
-                <div className="space-y-1.5 font-mono text-xs overflow-x-auto">
-                  {rawLogs.map((l, i) => (
-                    <div key={i} className={`whitespace-nowrap ${l.highlight ? 'text-[#00e5c3]' : 'text-gray-300'}`}>
-                      <span className="text-gray-600 mr-1">{l.time}</span>
-                      {l.cmd}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right sidebar */}
-          <div className="space-y-4">
-            <ResolutionTimeline />
-
-            {/* Export */}
-            <button className="card w-full p-4 flex items-center gap-3 hover:border-[#444] transition-colors group">
-              <div className="w-8 h-8 bg-[#111] rounded-lg flex items-center justify-center flex-shrink-0">
-                <FileText size={15} className="text-gray-400 group-hover:text-gray-200 transition-colors" />
-              </div>
-              <span className="text-gray-300 text-sm group-hover:text-white transition-colors flex-1 text-left">
-                Export PDF Report
-              </span>
-              <ExternalLink size={14} className="text-gray-500 group-hover:text-gray-300 transition-colors flex-shrink-0" />
-            </button>
-
-            {/* Share */}
-            <button className="card w-full p-4 flex items-center gap-3 hover:border-[#444] transition-colors group">
-              <div className="w-8 h-8 bg-[#111] rounded-lg flex items-center justify-center flex-shrink-0">
-                <Share2 size={15} className="text-gray-400 group-hover:text-gray-200 transition-colors" />
-              </div>
-              <span className="text-gray-300 text-sm group-hover:text-white transition-colors flex-1 text-left">
-                Share with Team
-              </span>
-              <ExternalLink size={14} className="text-gray-500 group-hover:text-gray-300 transition-colors flex-shrink-0" />
-            </button>
-
-            {/* Automation Insight */}
-            <div className="relative rounded-xl p-4 sm:p-5 overflow-hidden bg-gradient-to-br from-[#1a0f2e] to-[#120c22] border border-[#2d1f50]">
-              <div className="relative z-10">
-                <h3 className="text-white font-bold mb-2">Automation Insight</h3>
-                <p className="text-gray-300 text-xs leading-relaxed">
-                  This recovery prevented an estimated 14 minutes of total downtime, saving approx.{' '}
-                  <strong className="text-[#00e5c3]">$1,240</strong> in SLA penalties.
-                </p>
-              </div>
-              <div className="absolute bottom-2 right-3 opacity-10">
-                <BarChart3 size={64} className="text-purple-400" />
-              </div>
-            </div>
-          </div>
+        {/* Floating action button */}
+        <div className="fixed bottom-6 right-6">
+          <button
+            onClick={() => onNavigate('reports')}
+            className="w-10 h-10 rounded-full bg-cyan-500 hover:bg-cyan-400 shadow-lg shadow-cyan-500/25 flex items-center justify-center transition-colors"
+          >
+            <ChevronRight size={18} className="text-[#05081a]" />
+          </button>
         </div>
       </div>
     </div>

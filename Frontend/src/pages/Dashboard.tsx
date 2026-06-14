@@ -1,330 +1,313 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  BarChart3,
-  Download,
-  Eye,
-  ExternalLink,
-  Filter,
-  FlaskConical,
-  MessageSquare,
-  Settings2,
-  Wrench,
+  Play, Activity, Radio, Zap, Shield, Eye, Search,
+  Wrench, MessageSquare, ArrowRight, Server, Database,
+  Lock, ChevronRight, BarChart2, CheckCircle, AlertTriangle
 } from 'lucide-react';
-import AnalyticsChart from '../components/AnalyticsChart';
-import Footer from '../components/Footer';
+import { SCENARIOS } from '../data/scenarios';
+import type { IncidentScenario } from '../types/incident';
 
-interface Props {
-  onViewIncident: () => void;
+type Page = 'dashboard' | 'incidents' | 'history' | 'reports' | 'analytics' | 'settings';
+
+interface DashboardProps {
+  onNavigate: (page: Page, scenarioId?: string) => void;
 }
 
-const agentSteps = [
-  { name: 'Watcher', status: 'COMPLETED', icon: Eye },
-  { name: 'Diagnoser', status: 'COMPLETED', icon: FlaskConical },
-  { name: 'Orchestrator', status: 'ANALYZING ROOT CAUSE', icon: Settings2 },
-  { name: 'Patcher', status: 'UPCOMING', icon: Wrench },
-  { name: 'Communicator', status: 'UPCOMING', icon: MessageSquare },
+const AGENT_CHAIN = [
+  { name: 'Orchestrator', icon: Shield, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30', role: 'Controller' },
+  { name: 'Watcher',      icon: Eye,    color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/30',   role: 'Sensor' },
+  { name: 'Diagnoser',    icon: Search, color: 'text-amber-400',  bg: 'bg-amber-500/10',  border: 'border-amber-500/30',  role: 'Analyst' },
+  { name: 'Patcher',      icon: Wrench, color: 'text-teal-400',   bg: 'bg-teal-500/10',   border: 'border-teal-500/30',   role: 'Fixer' },
+  { name: 'Communicator', icon: MessageSquare, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30', role: 'Notifier' },
 ];
 
-const feedItems = [
-  { ago: '02m ago', agent: 'Watcher', color: '#00e5c3', msg: 'Detected abnormal CPU usage (95%) on api-server-2.' },
-  { ago: '01m ago', agent: 'Diagnoser', color: '#f97316', msg: 'Likely memory leak in authentication service identified.' },
-  { ago: 'Just now', agent: 'Orchestrator', color: '#a78bfa', msg: 'Evaluating risk of service restart vs. hot-patching.' },
-  { ago: '15m ago', agent: 'Patcher', color: '#60a5fa', msg: 'System integrity check passed after incident #482.' },
-  { ago: '22m ago', agent: 'Watcher', color: '#00e5c3', msg: 'Memory threshold alert cleared on db-cluster-1.' },
-];
+const SEVERITY_CFG = {
+  critical: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/25', dot: 'bg-red-500' },
+  high:     { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/25', dot: 'bg-amber-500' },
+  medium:   { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/25', dot: 'bg-blue-500' },
+};
 
-const logLines = [
-  "> Fetching metrics for 'api-server-2' [CPU_LOAD, MEM_USAGE, GC_PAUSE]",
-  '> Cross-referencing deployment logs with spike onset (14:22:10 UTC)',
-  '> Identifying potential leak in AuthModule.validateToken()',
-  '> Initiating snapshot analysis...',
-];
+const SCENARIO_ICONS: Record<string, React.ReactNode> = {
+  'incident-001': <Server size={18} className="text-red-400" />,
+  'incident-002': <Database size={18} className="text-amber-400" />,
+  'incident-003': <Lock size={18} className="text-purple-400" />,
+};
 
-const incidentHistory = [
-  { id: '#INC-492', title: 'Redis OOM Recovery', status: 'RESOLVED', statusColor: 'green', duration: '1m 45s' },
-  { id: '#INC-491', title: 'SSL Cert Expiry Auto-renew', status: 'RESOLVED', statusColor: 'green', duration: '42s' },
-  { id: '#INC-490', title: 'DNS Resolution Flaky', status: 'MANUAL', statusColor: 'purple', duration: '12m 10s' },
-];
-
-const statCards = [
-  { label: 'Active Incidents', value: '2', color: 'text-white' },
-  { label: 'Resolved Today', value: '45', color: 'text-[#00e5c3]' },
-  { label: 'MTTR Reduction', value: '78%', color: 'text-white' },
-  { label: 'Agent Success Rate', value: '99.2%', color: 'text-[#a78bfa]' },
-];
-
-function ElapsedTimer() {
-  const [elapsed, setElapsed] = useState(262);
-  useEffect(() => {
-    const id = setInterval(() => setElapsed((e) => e + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-  const s = String(elapsed % 60).padStart(2, '0');
-  return <span className="font-mono text-lg sm:text-2xl text-white tabular-nums">00:{m}:{s}</span>;
-}
-
-function LogTerminal() {
-  const [cursor, setCursor] = useState(true);
-  useEffect(() => {
-    const id = setInterval(() => setCursor((c) => !c), 600);
-    return () => clearInterval(id);
-  }, []);
+function CompactScenarioCard({ scenario, onLaunch }: { scenario: IncidentScenario; onLaunch: () => void }) {
+  const sev = SEVERITY_CFG[scenario.severity];
   return (
-    <div className="bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg p-3 sm:p-4 font-mono text-xs leading-relaxed overflow-x-auto">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="w-2 h-2 rounded-full bg-[#00e5c3] animate-pulse flex-shrink-0" />
-        <span className="text-[#00e5c3] font-semibold">Orchestrator Logs</span>
+    <div className="border border-[#1e2d4d] rounded-xl bg-[#0c1228] hover:border-cyan-500/25 transition-all duration-200 group flex flex-col">
+      <div className="p-4 flex-1">
+        <div className="flex items-start justify-between mb-3">
+          <div className="w-9 h-9 rounded-lg bg-[#080d1f] border border-[#1e2d4d] flex items-center justify-center">
+            {SCENARIO_ICONS[scenario.id]}
+          </div>
+          <span className={`flex items-center gap-1 text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded border ${sev.color} ${sev.bg} ${sev.border}`}>
+            <span className={`w-1 h-1 rounded-full ${sev.dot}`} />
+            {scenario.severity}
+          </span>
+        </div>
+        <div className="text-[9px] font-mono text-slate-600 mb-0.5">{scenario.id.toUpperCase()}</div>
+        <h3 className="text-sm font-bold text-white mb-1.5 leading-snug">{scenario.title}</h3>
+        <p className="text-[10px] text-slate-500 leading-relaxed">{scenario.description}</p>
       </div>
-      <div className="min-w-max sm:min-w-0 space-y-1">
-        {logLines.map((l, i) => (
-          <div key={i} className="text-gray-300 whitespace-nowrap sm:whitespace-normal">{l}</div>
-        ))}
-        <div className="text-gray-400">{cursor ? '_' : '\u00a0'}</div>
+      <div className="px-4 py-2.5 border-t border-[#1e2d4d] flex items-center justify-between">
+        <div className="flex gap-1.5">
+          {scenario.tags.slice(0, 2).map(t => (
+            <span key={t} className="text-[8px] px-1.5 py-0.5 rounded bg-[#080d1f] border border-[#1a2540] text-slate-600 font-mono">{t}</span>
+          ))}
+        </div>
+        <button
+          onClick={onLaunch}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-[10px] font-bold transition-all hover:scale-105"
+        >
+          <Play size={9} />
+          Launch
+        </button>
       </div>
     </div>
   );
 }
 
-export default function Dashboard({ onViewIncident }: Props) {
+const recentHistory = [
+  { id: '#INC-9482', title: "CPU Spike on 'Cluster-Delta'", sev: 'critical', status: 'Resolved', time: '12m 45s' },
+  { id: '#INC-9481', title: 'DB Connection Pool Exhaustion', sev: 'high', status: 'Active', time: '--' },
+  { id: '#INC-9479', title: "Unusual Login Pattern: 'jsmith'", sev: 'medium', status: 'Investigating', time: '--' },
+];
+
+const statusColor: Record<string, string> = {
+  Resolved: 'text-green-400',
+  Active: 'text-amber-400',
+  Investigating: 'text-blue-400',
+};
+
+export default function Dashboard({ onNavigate }: DashboardProps) {
+  const [tick, setTick] = useState(0);
+  const [activeAgentIdx, setActiveAgentIdx] = useState(0);
+
+  useEffect(() => {
+    const t1 = setInterval(() => setTick(n => n + 1), 2000);
+    const t2 = setInterval(() => setActiveAgentIdx(i => (i + 1) % AGENT_CHAIN.length), 1800);
+    return () => { clearInterval(t1); clearInterval(t2); };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#0f0f0f] pt-[52px] flex flex-col">
-      {/* Hero */}
-      <section className="flex flex-col items-center text-center px-4 sm:px-6 pt-10 sm:pt-14 md:pt-16 pb-10 md:pb-14">
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white leading-[1.15] max-w-3xl">
-          AI Agents Resolving Production
-          <br className="hidden sm:block" />
-          {' '}Incidents{' '}
-          <span className="text-[#00e5c3]">Before Humans Wake Up</span>
-        </h1>
-        <p className="text-gray-400 mt-4 sm:mt-5 text-sm sm:text-base max-w-xl leading-relaxed px-2">
-          Monitor, diagnose, patch, and communicate incidents autonomously using
-          coordinated multi-agent LLM systems integrated with your cloud stack.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center gap-3 mt-6 sm:mt-8 w-full sm:w-auto">
-          <button className="w-full sm:w-auto bg-[#00e5c3] hover:bg-[#00ccad] transition-colors text-[#0a1f1c] font-semibold px-6 py-2.5 rounded-lg text-sm">
-            Trigger Demo Incident
-          </button>
-          <button
-            onClick={onViewIncident}
-            className="w-full sm:w-auto bg-transparent border border-[#333] hover:border-[#555] text-white font-medium px-6 py-2.5 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
-          >
-            <Eye size={15} />
-            View Live Incident
-          </button>
-        </div>
-      </section>
+    <div className="min-h-screen bg-[#05081a] bg-grid pt-12 pb-14">
+      <div className="max-w-6xl mx-auto px-6">
 
-      {/* Stat Cards */}
-      <section className="px-4 sm:px-6 md:px-8 max-w-7xl mx-auto w-full">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          {statCards.map((card) => (
-            <div key={card.label} className="card px-4 sm:px-6 py-4 sm:py-5">
-              <div className="text-gray-400 text-xs sm:text-sm mb-1.5 sm:mb-2">{card.label}</div>
-              <div className={`text-2xl sm:text-3xl font-bold ${card.color}`}>{card.value}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Live Incident + Activity Feed */}
-      <section className="px-4 sm:px-6 md:px-8 max-w-7xl mx-auto w-full mt-5 sm:mt-6 grid grid-cols-1 lg:grid-cols-[1fr_340px] xl:grid-cols-[1fr_360px] gap-4 sm:gap-5">
-        {/* Live Incident Command Center */}
-        <div className="card p-4 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
-            <div className="flex items-center gap-2.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse flex-shrink-0" />
-              <h2 className="text-white font-bold text-base sm:text-lg">Live Incident Command Center</h2>
-            </div>
-            <span className="text-xs border border-red-700/60 text-red-400 bg-red-950/30 px-3 py-1 rounded-full whitespace-nowrap">
-              Priority: Critical
-            </span>
-          </div>
-          <div className="flex items-center gap-2 mb-4 sm:mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00e5c3]" />
-            <span className="text-gray-400 text-xs sm:text-sm">Active Orchestration Flow</span>
-          </div>
-
-          {/* Incident info box */}
-          <div className="bg-[#111] border border-[#2a2a2a] rounded-lg px-4 sm:px-5 py-3 sm:py-4 flex flex-wrap items-center justify-between gap-3 mb-5 sm:mb-6">
-            <div>
-              <div className="text-white font-semibold text-sm">CPU Spike Detected</div>
-              <div className="text-gray-500 text-xs mt-1 font-mono">
-                Target: <span className="text-[#00e5c3]">api-server-2.production.cloud</span>
+        {/* Hero */}
+        <div className="pt-8 pb-6">
+          <div className="flex items-start justify-between">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield size={12} className="text-cyan-400" />
+                <span className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">Autonomous Response Active</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 live-dot" />
+              </div>
+              <h1 className="text-3xl font-bold text-white leading-tight mb-2">
+                Autonomous AI{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-teal-400">
+                  Incident Response
+                </span>
+              </h1>
+              <p className="text-sm text-slate-400 leading-relaxed max-w-xl mb-5">
+                When production breaks at 3 AM, IncidentMind's agents detect it, diagnose it, draft a fix, and notify your team — before a human even wakes up.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => onNavigate('incidents')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-xs font-bold transition-all hover:scale-105 shadow-lg shadow-cyan-500/20"
+                >
+                  <Zap size={12} />
+                  Open War Room
+                </button>
+                <button
+                  onClick={() => onNavigate('analytics')}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-400 text-xs font-medium hover:bg-cyan-500/10 transition-colors"
+                >
+                  View Analytics
+                  <ArrowRight size={12} />
+                </button>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-gray-500 text-xs mb-1">Time Elapsed</div>
-              <ElapsedTimer />
-            </div>
-          </div>
-
-          {/* Agent flow — horizontally scrollable on small screens */}
-          <div className="overflow-x-auto -mx-1 px-1 mb-5 sm:mb-6">
-            <div className="relative flex items-start justify-between min-w-[420px] sm:min-w-0 px-2 sm:px-4">
-              {/* connecting line */}
-              <div className="absolute top-[26px] left-[14%] right-[14%] h-px bg-[#2a2a2a]" />
-              <div className="absolute top-[26px] left-[14%] w-[37%] h-px bg-[#00e5c3]" />
-
-              {agentSteps.map((step) => {
-                const isCompleted = step.status === 'COMPLETED';
-                const isActive = step.status === 'ANALYZING ROOT CAUSE';
-                const Icon = step.icon;
-                return (
-                  <div key={step.name} className="flex flex-col items-center z-10 w-[18%]">
-                    <div
-                      className={`w-11 h-11 sm:w-[52px] sm:h-[52px] rounded-xl flex items-center justify-center mb-2 border transition-all ${
-                        isCompleted
-                          ? 'bg-[#0d2d24] border-[#00e5c3]/40'
-                          : isActive
-                          ? 'bg-[#0d2d24] border-[#00e5c3] agent-active'
-                          : 'bg-[#1a1a1a] border-[#2a2a2a]'
-                      }`}
-                    >
-                      <Icon
-                        size={18}
-                        className={isCompleted || isActive ? 'text-[#00e5c3]' : 'text-gray-600'}
-                      />
-                    </div>
-                    <div
-                      className={`text-[10px] sm:text-xs font-semibold text-center ${
-                        isActive ? 'text-[#00e5c3]' : isCompleted ? 'text-white' : 'text-gray-500'
-                      }`}
-                    >
-                      {step.name}
-                    </div>
-                    <div
-                      className={`text-[9px] sm:text-[10px] font-medium tracking-wide mt-0.5 text-center leading-tight ${
-                        isCompleted || isActive ? 'text-[#00e5c3]' : 'text-gray-600'
-                      }`}
-                    >
-                      {step.status}
-                    </div>
+            <div className="flex items-center gap-4 mt-2">
+              {[
+                { label: 'Uptime', val: '99.1%', color: 'text-green-400' },
+                { label: 'Active', val: '3', color: 'text-amber-400' },
+                { label: 'Critical', val: '1', color: 'text-red-400' },
+              ].map((s, i, arr) => (
+                <div key={s.label} className="flex items-center gap-4">
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold font-mono ${s.color}`}>{s.val}</div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">{s.label}</div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <LogTerminal />
-        </div>
-
-        {/* Right column */}
-        <div className="flex flex-col gap-4 sm:gap-5">
-          {/* Agent Activity Feed */}
-          <div className="card p-4 sm:p-5 flex-1">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="text-white font-semibold text-sm">Agent Activity Feed</h3>
-              <button className="text-gray-500 hover:text-gray-300 transition-colors">
-                <BarChart3 size={16} />
-              </button>
-            </div>
-            <div className="space-y-2 sm:space-y-2.5">
-              {feedItems.map((item, i) => (
-                <div
-                  key={i}
-                  className={`bg-[#111] border rounded-lg p-2.5 sm:p-3 ${
-                    i === 2 ? 'border-[#00e5c3]/30' : 'border-[#222]'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 mb-1 sm:mb-1.5">
-                    <span className="text-gray-500 text-[10px]">{item.ago}</span>
-                    <span className="text-[10px]" style={{ color: item.color }}>{item.agent}</span>
-                  </div>
-                  <p className="text-gray-300 text-xs leading-snug">{item.msg}</p>
+                  {i < arr.length - 1 && <div className="w-px h-10 bg-[#1e2d4d]" />}
                 </div>
               ))}
             </div>
           </div>
-
-          {/* System Health */}
-          <div className="card p-4 sm:p-5">
-            <div className="text-gray-400 text-[10px] font-semibold tracking-widest uppercase mb-3">
-              System Health
-            </div>
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex-1 h-2 bg-[#1a1a1a] rounded-full overflow-hidden mr-3">
-                <div className="h-full rounded-full bg-gradient-to-r from-[#00e5c3] to-[#00b89e]" style={{ width: '98%' }} />
-              </div>
-              <span className="text-[#00e5c3] text-sm font-semibold">98%</span>
-            </div>
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-gray-500">NODE CLUSTERS</span>
-              <span className="text-[#00e5c3] font-medium">STABLE</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Analytics + Incident History */}
-      <section className="px-4 sm:px-6 md:px-8 max-w-7xl mx-auto w-full mt-4 sm:mt-5 mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        <div className="h-[300px] sm:h-[340px]">
-          <AnalyticsChart />
         </div>
 
-        {/* Incident History */}
-        <div className="card p-4 sm:p-6 overflow-x-auto">
-          <div className="flex items-center justify-between mb-4 sm:mb-5">
-            <h3 className="text-white font-semibold text-base">Incident History</h3>
+        {/* Agent Chain Visualizer */}
+        <div className="mb-6 border border-[#1e2d4d] rounded-xl bg-[#0c1228] p-4">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <button className="text-gray-400 hover:text-gray-200 transition-colors">
-                <Filter size={15} />
+              <Activity size={12} className="text-cyan-400" />
+              <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Agent Chain</span>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">Sequential context passing — no shared state</span>
+          </div>
+          <div className="flex items-stretch gap-0">
+            {AGENT_CHAIN.map((agent, i) => {
+              const isActive = i === activeAgentIdx;
+              const isDone = i < activeAgentIdx;
+              return (
+                <div key={agent.name} className="flex items-center flex-1">
+                  <div className={`flex-1 rounded-xl border p-3 transition-all duration-500 ${
+                    isActive ? `${agent.bg} ${agent.border} shadow-lg` :
+                    isDone ? 'bg-[#080d1f] border-green-500/15' :
+                    'bg-[#080d1f] border-[#1a2540]'
+                  }`}>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 border ${
+                      isActive ? `${agent.bg} ${agent.border}` :
+                      isDone ? 'bg-green-500/10 border-green-500/20' :
+                      'bg-[#0c1228] border-[#1e2d4d]'
+                    }`}>
+                      {isDone
+                        ? <CheckCircle size={13} className="text-green-400" />
+                        : <agent.icon size={13} className={isActive ? agent.color : 'text-slate-600'} />
+                      }
+                    </div>
+                    <div className={`text-[11px] font-semibold mb-0.5 ${isActive ? agent.color : isDone ? 'text-slate-400' : 'text-slate-600'}`}>{agent.name}</div>
+                    <div className="text-[9px] text-slate-600">{agent.role}</div>
+                    {isActive && (
+                      <div className="mt-1.5 h-0.5 rounded-full bg-[#1e2d4d] overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 animate-pulse" style={{ width: `${55 + (tick % 5) * 8}%` }} />
+                      </div>
+                    )}
+                  </div>
+                  {i < AGENT_CHAIN.length - 1 && (
+                    <ArrowRight size={12} className={`mx-2 shrink-0 ${isDone ? 'text-cyan-500/50' : 'text-slate-700'}`} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Two-column: Scenarios + History */}
+        <div className="grid grid-cols-3 gap-5">
+
+          {/* Scenario launcher (2/3 width) */}
+          <div className="col-span-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Zap size={12} className="text-cyan-400" />
+                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Incident Scenarios</span>
+              </div>
+              <button
+                onClick={() => onNavigate('incidents')}
+                className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+              >
+                Open War Room <ChevronRight size={10} />
               </button>
-              <button className="text-gray-400 hover:text-gray-200 transition-colors">
-                <Download size={15} />
-              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              {SCENARIOS.map(sc => (
+                <CompactScenarioCard
+                  key={sc.id}
+                  scenario={sc}
+                  onLaunch={() => onNavigate('incidents', sc.id)}
+                />
+              ))}
             </div>
           </div>
 
-          <table className="w-full min-w-[400px]">
-            <thead>
-              <tr className="border-b border-[#1e1e1e]">
-                {['INCIDENT ID', 'TITLE', 'STATUS', 'DURATION', 'ACTION'].map((h) => (
-                  <th
-                    key={h}
-                    className="text-left text-[10px] text-gray-500 font-semibold tracking-wider pb-3 pr-3"
-                  >
-                    {h}
-                  </th>
+          {/* Right: Recent + Status */}
+          <div className="space-y-4">
+            {/* Recent incidents */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Radio size={12} className="text-cyan-400" />
+                  <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Recent</span>
+                </div>
+                <button
+                  onClick={() => onNavigate('history')}
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                >
+                  All <ChevronRight size={10} />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                {recentHistory.map(inc => (
+                  <div key={inc.id} className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-2.5 hover:border-cyan-500/20 cursor-pointer transition-colors" onClick={() => onNavigate('history')}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[9px] font-mono text-slate-500">{inc.id}</span>
+                      <span className={`text-[9px] font-medium ${statusColor[inc.status]}`}>{inc.status}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-300 font-medium leading-snug">{inc.title}</div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className={`text-[8px] uppercase font-semibold ${SEVERITY_CFG[inc.sev as keyof typeof SEVERITY_CFG].color}`}>{inc.sev}</span>
+                      <span className="text-[9px] font-mono text-slate-600">{inc.time}</span>
+                    </div>
+                  </div>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {incidentHistory.map((row) => (
-                <tr key={row.id} className="border-b border-[#1a1a1a]">
-                  <td className="py-3 sm:py-4 pr-3">
-                    <span className="text-[#00e5c3] text-sm font-mono font-medium">{row.id}</span>
-                  </td>
-                  <td className="py-3 sm:py-4 pr-3">
-                    <span className="text-gray-200 text-sm whitespace-nowrap">{row.title}</span>
-                  </td>
-                  <td className="py-3 sm:py-4 pr-3">
-                    <span
-                      className={`text-[10px] font-bold tracking-wider px-2.5 py-1 rounded whitespace-nowrap ${
-                        row.statusColor === 'green'
-                          ? 'bg-green-900/40 text-green-400 border border-green-700/40'
-                          : 'bg-purple-900/40 text-purple-400 border border-purple-700/40'
-                      }`}
-                    >
-                      {row.status}
-                    </span>
-                  </td>
-                  <td className="py-3 sm:py-4 pr-3">
-                    <span className="text-gray-300 text-sm font-mono whitespace-nowrap">{row.duration}</span>
-                  </td>
-                  <td className="py-3 sm:py-4">
-                    <button className="text-gray-400 hover:text-gray-200 transition-colors">
-                      <ExternalLink size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+              </div>
+            </div>
 
-      <Footer />
+            {/* System status */}
+            <div className="border border-[#1e2d4d] rounded-xl bg-[#0c1228] p-3">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart2 size={12} className="text-cyan-400" />
+                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">System Status</span>
+              </div>
+              <div className="space-y-2">
+                {[
+                  { label: 'Agent Accuracy', val: '98.4%', color: 'from-cyan-500 to-teal-400', pct: 98 },
+                  { label: 'Success Rate', val: '94.1%', color: 'from-green-500 to-teal-400', pct: 94 },
+                  { label: 'Avg MTTR', val: '14m 32s', color: 'from-blue-500 to-cyan-400', pct: 75 },
+                ].map(m => (
+                  <div key={m.label}>
+                    <div className="flex justify-between text-[10px] mb-1">
+                      <span className="text-slate-500">{m.label}</span>
+                      <span className="text-slate-300 font-mono font-semibold">{m.val}</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-[#1e2d4d] overflow-hidden">
+                      <div className={`h-full rounded-full bg-gradient-to-r ${m.color}`} style={{ width: `${m.pct}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* One-line pitch */}
+        <div className="mt-6 border border-cyan-500/15 rounded-xl bg-cyan-500/5 px-5 py-3.5 flex items-center gap-4">
+          <AlertTriangle size={16} className="text-cyan-400 shrink-0" />
+          <p className="text-sm text-slate-400 italic">
+            "When your production system breaks at 3 AM, IncidentMind's agents detect it, diagnose it, draft a fix, and notify your team — before a human even wakes up."
+          </p>
+        </div>
+      </div>
+
+      {/* Bottom bar */}
+      <div className="fixed bottom-0 left-0 right-0 h-8 flex items-center px-4 border-t border-[#1e2d4d] bg-[#05081a] z-40">
+        <div className="flex items-center gap-4 text-[10px] font-mono text-slate-600 w-full">
+          <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />AGENTS ONLINE</span>
+          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <span>5 AGENTS ACTIVE</span>
+          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <span>SSE TRANSPORT READY</span>
+          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <span className="text-cyan-400/60">BACKEND: {(import.meta.env.VITE_BACKEND_URL as string | undefined) ?? 'http://localhost:3001'}</span>
+          <div className="flex-1" />
+          <span>© 2026 IncidentMind AI Operations</span>
+          <span>·</span>
+          <span>Claude API Powered</span>
+        </div>
+      </div>
     </div>
   );
 }
