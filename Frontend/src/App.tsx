@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Header from './components/Header';
+import CommandCenterBar from './components/CommandCenterBar';
 import Dashboard from './pages/Dashboard';
 import ActiveIncident from './pages/ActiveIncident';
 import IncidentDetail from './pages/IncidentDetail';
@@ -32,7 +33,12 @@ export default function App() {
       />
 
       {currentPage === 'dashboard' && (
-        <Dashboard onNavigate={(p, sid) => navigate(p, sid)} />
+        <>
+          <div className="pt-12">
+            <CommandCenterBar />
+          </div>
+          <Dashboard onNavigate={(p, sid) => navigate(p, sid)} />
+        </>
       )}
       {currentPage === 'incidents' && (
         <ActiveIncident
