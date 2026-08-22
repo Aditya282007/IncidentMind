@@ -109,25 +109,29 @@ export default function History({ onNavigate }: HistoryProps) {
     setLoading(true);
     setError(null);
     try {
+      // Convert to 1-based page for backend
+      const backendPage = currentPage + 1;
       const params = new URLSearchParams({
-        page: currentPage.toString(),
+        page: backendPage.toString(),
         limit: limit.toString(),
       });
       if (search) params.append('search', search);
-
+      
+      // Add severity filters - send as array
       const selectedSeverities = Array.from(sevFilters);
       if (selectedSeverities.length > 0 && selectedSeverities.length < 8) {
         selectedSeverities.forEach(s => params.append('severity', s));
       }
-
+      
+      // Add status filters - send as array
       const selectedStatuses = Array.from(statusFilters);
       if (selectedStatuses.length > 0 && selectedStatuses.length < 6) {
         selectedStatuses.forEach(s => params.append('status', s));
       }
-
+      
       const response = await fetch(`${BACKEND_URL}/api/history?${params}`);
       if (!response.ok) throw new Error('Failed to fetch history');
-
+      
       const data: HistoryResponse = await response.json();
       setIncidents(data.incidents);
       setTotal(data.total);
@@ -184,6 +188,7 @@ export default function History({ onNavigate }: HistoryProps) {
     <div className="min-h-screen bg-[#05081a] pt-12 pb-16">
       <div className="max-w-6xl mx-auto px-6 pt-8">
 
+        {/* Page header */}
         <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Incident History</h1>
@@ -196,11 +201,11 @@ export default function History({ onNavigate }: HistoryProps) {
                 type="text"
                 placeholder="Search incidents..."
                 value={search}
-                onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
+                onChange={e => setSearch(e.target.value)}
                 className="pl-8 pr-3 py-2 rounded bg-[#0c1228] border border-[#1e2d4d] text-sm text-slate-300 placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 w-52"
               />
             </div>
-            <button
+            <button 
               onClick={fetchHistory}
               disabled={loading}
               className="flex items-center gap-2 px-3 py-2 rounded bg-[#0c1228] border border-[#1e2d4d] text-sm text-slate-300 hover:border-cyan-500/30 hover:text-cyan-400 transition-colors disabled:opacity-50"
@@ -215,8 +220,10 @@ export default function History({ onNavigate }: HistoryProps) {
           </div>
         </div>
 
+        {/* Filters */}
         <div className="flex items-center justify-between mb-5 p-3 rounded-lg bg-[#0c1228] border border-[#1e2d4d]">
           <div className="flex items-center gap-4 flex-wrap">
+            {/* Severity */}
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Severity:</span>
               {(['Critical', 'High', 'Medium', 'Low'] as SevFilter[]).map(s => {
@@ -241,6 +248,7 @@ export default function History({ onNavigate }: HistoryProps) {
 
             <div className="w-px h-5 bg-[#1e2d4d]" />
 
+            {/* Status */}
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Status:</span>
               {(['Resolved', 'Active', 'Investigating'] as StatusFilter[]).map(s => {
@@ -272,6 +280,7 @@ export default function History({ onNavigate }: HistoryProps) {
           </button>
         </div>
 
+        {/* Loading/Error */}
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -288,6 +297,7 @@ export default function History({ onNavigate }: HistoryProps) {
           </div>
         )}
 
+        {/* Table */}
         {!loading && <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] overflow-hidden mb-5">
           <table className="w-full">
             <thead>
@@ -307,7 +317,7 @@ export default function History({ onNavigate }: HistoryProps) {
                   </td>
                 </tr>
               ) : (
-                filtered.map(inc => {
+                filtered.map((inc, i) => {
                   const sevLabel = getSeverityLabel(inc.severity);
                   const statusLabel = getStatusLabel(inc.status);
                   const sev = severityConfig[sevLabel];
@@ -357,6 +367,7 @@ export default function History({ onNavigate }: HistoryProps) {
           </table>
         </div>}
 
+        {/* Pagination */}
         {!loading && (
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-slate-500">
@@ -396,7 +407,9 @@ export default function History({ onNavigate }: HistoryProps) {
                   </button>
                 );
               })}
-              {totalPages > 5 && <span className="text-slate-600 text-[12px] px-1">...</span>}
+              {totalPages > 5 && (
+                <span className="text-slate-600 text-[12px] px-1">...</span>
+              )}
               {totalPages > 5 && (
                 <button
                   onClick={() => setCurrentPage(totalPages)}
@@ -407,7 +420,7 @@ export default function History({ onNavigate }: HistoryProps) {
               )}
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage >= totalPages || totalPages === 0}
+                disabled={currentPage === totalPages}
                 className="w-7 h-7 rounded flex items-center justify-center border border-[#1e2d4d] text-slate-500 hover:border-cyan-500/30 hover:text-cyan-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight size={13} />
