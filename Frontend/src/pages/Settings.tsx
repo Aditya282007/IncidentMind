@@ -1020,7 +1020,7 @@ export default function Settings() {
           <p className="text-[11px] text-slate-500 mt-0.5">{sectionTitles[activeSection].desc}</p>
         </div>
         <div className="flex-1 overflow-y-auto pb-6">
-          <div className="max-w-3xl px-6 pt-5">
+          <div className="px-6 pt-5">
             {sectionContent[activeSection]}
           </div>
         </div>

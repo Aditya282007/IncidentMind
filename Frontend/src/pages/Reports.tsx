@@ -582,69 +582,132 @@ export default function Reports({ onNavigate }: ReportsProps) {
         </div>
       </aside>
 
-      {/* Main */}
+{/* Main */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl px-6 pt-4 pb-10">
+        <div className="px-6 pt-4 pb-10">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Main content - 3 columns */}
+            <div className="lg:col-span-3 space-y-6">
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 mb-4">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500/15 border border-amber-500/25 text-amber-400 text-[10px] font-semibold">
-              <Zap size={9} /> AI Generated
-            </span>
-            <span className="text-[10px] font-mono text-slate-500">{activeReport.id}</span>
-            <ChevronRight size={10} className="text-slate-600" />
-            <button onClick={() => onNavigate('incident-detail')} className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors">
-              {activeReport.incidentId}
-            </button>
-            <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
-                <Share2 size={11} /> Share
-              </button>
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-[11px] font-semibold transition-colors">
-                <Download size={11} /> Export PDF
-              </button>
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-500/15 border border-amber-500/25 text-amber-400 text-[10px] font-semibold">
+                  <Zap size={9} /> AI Generated
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">{activeReport.id}</span>
+                <ChevronRight size={10} className="text-slate-600" />
+                <button onClick={() => onNavigate('incident-detail')} className="text-[10px] font-mono text-cyan-400 hover:text-cyan-300 transition-colors">
+                  {activeReport.incidentId}
+                </button>
+                <div className="ml-auto flex items-center gap-2">
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
+                    <Share2 size={11} /> Share
+                  </button>
+                  <button onClick={() => downloadReport(activeReport)} className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-[11px] font-semibold transition-colors">
+                    <Download size={11} /> Export PDF
+                  </button>
+                </div>
+              </div>
+
+              {/* Header */}
+              <div className="mb-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <h1 className="text-xl font-bold text-white">{activeReport.title}</h1>
+                  <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded border ${SEV_COLOR[activeReport.severity]}`}>{activeReport.severity}</span>
+                </div>
+                <p className="text-[11px] text-slate-400">AI-generated post-incident report · {activeReport.date} · {activeReport.component}</p>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-[#1e2d4d] mb-5">
+                {TAB_CONFIG.map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-medium border-b-2 transition-all ${
+                      activeTab === tab.id
+                        ? 'border-cyan-500 text-cyan-400'
+                        : 'border-transparent text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <tab.icon size={11} />
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Tab content */}
+              {TAB_CONTENT[activeTab]}
+
+              <div className="mt-8 pt-4 border-t border-[#1e2d4d] flex items-center justify-between text-[10px] text-slate-600 font-mono">
+                <span>© 2026 IncidentMind AI Operations · Data encrypted at rest</span>
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />System Online</span>
+                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />API Online</span>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Header */}
-          <div className="mb-5">
-            <div className="flex items-center gap-2 mb-1">
-              <h1 className="text-xl font-bold text-white">{activeReport.title}</h1>
-              <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded border ${SEV_COLOR[activeReport.severity]}`}>{activeReport.severity}</span>
-            </div>
-            <p className="text-[11px] text-slate-400">AI-generated post-incident report · {activeReport.date} · {activeReport.component}</p>
-          </div>
+            {/* Right sidebar - Incident metadata */}
+            <div className="lg:col-span-1 space-y-4">
+              <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4 sticky top-24">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider">Incident Details</span>
+                </div>
+                <div className="space-y-3 text-[11px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Incident ID</span>
+                    <span className="font-mono text-slate-300">{activeReport.incidentId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Component</span>
+                    <span className="font-mono text-cyan-400">{activeReport.component}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Report ID</span>
+                    <span className="font-mono text-slate-300">{activeReport.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Date</span>
+                    <span className="text-slate-300">{activeReport.date}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Status</span>
+                    <span className={`font-medium ${STATUS_COLOR[activeReport.status]}`}>{activeReport.status}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Severity</span>
+                    <span className={`font-medium ${SEV_COLOR[activeReport.severity].split(' ')[0]}`}>{activeReport.severity}</span>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-[#1e2d4d]">
+                  <div className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider mb-2">Notifications Sent</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activeReport.data.channels.map(ch => (
+                      <span key={ch} className="text-[9px] px-1.5 py-0.5 rounded bg-[#0c1228] border border-[#1e2d4d] text-slate-500 font-mono">{ch}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-[#1e2d4d] mb-5">
-            {TAB_CONFIG.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-medium border-b-2 transition-all ${
-                  activeTab === tab.id
-                    ? 'border-cyan-500 text-cyan-400'
-                    : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <tab.icon size={11} />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab content */}
-          {TAB_CONTENT[activeTab]}
-
-          <div className="mt-8 pt-4 border-t border-[#1e2d4d] flex items-center justify-between text-[10px] text-slate-600 font-mono">
-            <span>© 2026 IncidentMind AI Operations · Data encrypted at rest</span>
-            <div className="flex items-center gap-4">
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />System Online</span>
-              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />API Online</span>
+              <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
+                <div className="text-[10px] font-semibold text-slate-300 uppercase tracking-wider mb-2">Quick Actions</div>
+                <div className="space-y-2">
+                  <button onClick={() => onNavigate('incidents')} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-2">
+                    <Play size={11} /> Replay Incident
+                  </button>
+                  <button onClick={() => downloadReport(activeReport)} className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-xs font-semibold transition-colors">
+                    <Download size={11} /> Export Report
+                  </button>
+                  <button className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-xs hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
+                    <Share2 size={11} /> Share Report
+                  </button>
+</div>
             </div>
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
