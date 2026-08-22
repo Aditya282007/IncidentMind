@@ -1,0 +1,9 @@
+{
+  "id": "incident-005",
+  "title": "Worker queue backlog on queue-worker",
+  "description": "Message queue depth exceeded 50k, processing lag 15 minutes",
+  "timestamp": "2026-04-28T11:20:00Z",
+  "metrics": { "cpuUsage": 38, "memoryUsage": 71, "requestLatency": 120, "errorRate": 0.01 },
+  "rootCause": "Consumer prefetch count too high (1000) causing memory pressure and slow processing",
+  "fix": "Reduced prefetch to 50, added horizontal pod autoscaler based on queue depth"
+}

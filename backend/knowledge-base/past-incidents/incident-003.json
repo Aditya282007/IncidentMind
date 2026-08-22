@@ -1,0 +1,14 @@
+{
+  "id": "incident-003",
+  "title": "Redis memory pressure on cache-redis",
+  "description": "Redis memory at 94%, eviction rate 5000 keys/sec, auth-service latency 2.3s",
+  "timestamp": "2026-06-20T09:15:00Z",
+  "metrics": {
+    "cpuUsage": 72,
+    "memoryUsage": 94,
+    "requestLatency": 433,
+    "errorRate": 0.058
+  },
+  "rootCause": "Unbounded session cache growth - no TTL on session keys",
+  "fix": "Added REDIS_SESSION_TTL=3600, MAXMEMORY_POLICY=allkeys-lru"
+}

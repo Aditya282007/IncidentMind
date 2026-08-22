@@ -1,0 +1,14 @@
+{
+  "id": "incident-002",
+  "title": "Database connection pool exhaustion on postgres-primary",
+  "description": "Connection pool maxed out at 200/200 causing query timeouts across all API servers",
+  "timestamp": "2026-07-15T14:30:00Z",
+  "metrics": {
+    "cpuUsage": 64,
+    "memoryUsage": 91,
+    "requestLatency": 1850,
+    "errorRate": 0.12
+  },
+  "rootCause": "Missing statement_timeout and idle_in_transaction_session_timeout config, leaky retry logic",
+  "fix": "Set DB_POOL_SIZE=100, statement_timeout=30s, idle_timeout=10s, fixed retry middleware"
+}

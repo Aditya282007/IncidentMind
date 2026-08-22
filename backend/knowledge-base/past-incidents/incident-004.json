@@ -1,0 +1,9 @@
+{
+  "id": "incident-004",
+  "title": "API Gateway latency spike on lb-03",
+  "description": "P99 latency increased from 120ms to 2.3s, 5xx errors at 8%",
+  "timestamp": "2026-05-10T16:45:00Z",
+  "metrics": { "cpuUsage": 45, "memoryUsage": 67, "requestLatency": 2300, "errorRate": 0.08 },
+  "rootCause": "Circuit breaker threshold misconfigured - failing open instead of closed",
+  "fix": "Corrected circuit breaker failure threshold from 5 to 50, added half-open state"
+}

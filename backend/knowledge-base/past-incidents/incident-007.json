@@ -1,0 +1,9 @@
+{
+  "id": "incident-007",
+  "title": "SSL certificate expiry on lb-03",
+  "description": "TLS handshake failures for 12% of requests, certificate expired 2 days ago",
+  "timestamp": "2026-03-22T08:00:00Z",
+  "metrics": { "cpuUsage": 22, "memoryUsage": 45, "requestLatency": 95, "errorRate": 0.12 },
+  "rootCause": "Cert-manager renewal failed due to DNS challenge timeout",
+  "fix": "Manual cert renewal, fixed cert-manager DNS01 solver config, added expiry alerting at 30 days"
+}

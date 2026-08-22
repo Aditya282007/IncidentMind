@@ -1,0 +1,9 @@
+{
+  "id": "incident-006",
+  "title": "Disk space critical on api-server-01",
+  "description": "Root filesystem at 98% capacity, log rotation failed",
+  "timestamp": "2026-04-05T03:00:00Z",
+  "metrics": { "cpuUsage": 55, "memoryUsage": 82, "requestLatency": 180, "errorRate": 0.03 },
+  "rootCause": "Logrotate config missing for new service, debug logging left enabled in prod",
+  "fix": "Added logrotate config, disabled debug logging, cleanup old logs"
+}

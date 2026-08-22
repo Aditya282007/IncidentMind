@@ -1,0 +1,9 @@
+{
+  "id": "incident-008",
+  "title": "Kubernetes node NotReady - kubelet certificate rotation failed",
+  "description": "Node api-server-node-3 marked NotReady, pods evicted",
+  "timestamp": "2026-03-10T14:30:00Z",
+  "metrics": { "cpuUsage": 0, "memoryUsage": 0, "requestLatency": 0, "errorRate": 1.0 },
+  "rootCause": "Kubelet client certificate rotation failed due to clock skew >5min",
+  "fix": "Fixed chrony NTP sync, manually rotated certs, added clock skew monitoring"
+}

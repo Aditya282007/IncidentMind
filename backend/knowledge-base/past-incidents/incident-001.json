@@ -1,0 +1,14 @@
+{
+  "id": "incident-001",
+  "title": "CPU spike detected on api-server-2",
+  "description": "CPU usage exceeded 95% for 5 minutes on api-server-2",
+  "timestamp": "2026-08-01T10:00:00Z",
+  "metrics": {
+    "cpuUsage": 97,
+    "memoryUsage": 78,
+    "requestLatency": 250,
+    "errorRate": 0.02
+  },
+  "rootCause": "Memory leak in v2.1.0",
+  "fix": "Rolling back to v2.0.9"
+}
