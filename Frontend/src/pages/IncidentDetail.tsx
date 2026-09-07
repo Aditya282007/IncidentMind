@@ -52,40 +52,31 @@ function ProgressRing({ pct }: { pct: number }) {
 export default function IncidentDetail({ onNavigate }: IncidentDetailProps) {
   return (
     <div className="min-h-screen bg-[#05081a] pt-12 pb-8">
-      <div className="max-w-6xl mx-auto px-6 pt-5">
-
-        {/* Breadcrumb + actions */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <button
-              onClick={() => onNavigate('incidents')}
-              className="hover:text-cyan-400 transition-colors"
-            >
-              INCIDENTS
-            </button>
-            <ChevronRight size={10} />
-            <span className="text-slate-300">INCIDENT-001</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
-              <Download size={11} />
-              Export PDF
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-[#1e2d4d] text-slate-300 text-[11px] hover:border-cyan-500/30 hover:text-cyan-400 transition-colors">
-              <Share2 size={11} />
-              Share Report
-            </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-amber-500/30 text-amber-400 text-[11px] hover:bg-amber-500/10 transition-colors">
-              <RotateCcw size={11} />
-              Reopen Incident
-            </button>
-          </div>
+      <div className="max-w-4xl mx-auto px-4 pt-5">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            onClick={() => onNavigate('incidents')}
+            className="text-slate-400 hover:text-slate-300 transition-colors text-[11px] font-mono"
+          >
+            INCIDENTS
+          </button>
+          <ChevronRight size={10} className="text-slate-400" />
+          <span className="text-slate-300">INCIDENT-001</span>
         </div>
 
         {/* Incident header */}
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-2xl font-bold text-white">CPU Spike Detected</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">CPU Spike Detected</h1>
+          <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
+            <span>Incident-001</span>
+            <span className="text-slate-600">•</span>
+            <Clock size={10} />
+            <span>Oct 24, 2023 - 14:22:10 UTC</span>
+            <span className="text-slate-600">•</span>
+            <span>Resolution Time: <span className="text-green-400">12m 45s</span></span>
+          </div>
+          <div className="flex items-center gap-3 mt-2">
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/15 border border-green-500/30 text-green-400 text-[10px] font-semibold">
               <CheckCircle size={9} />
               Resolved
@@ -95,19 +86,10 @@ export default function IncidentDetail({ onNavigate }: IncidentDetailProps) {
               Critical
             </span>
           </div>
-          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-mono">
-            <span>Incident-001</span>
-            <span className="text-slate-600">•</span>
-            <Clock size={10} />
-            <span>Oct 24, 2023 - 14:22:10 UTC</span>
-            <span className="text-slate-600">•</span>
-            <span>Resolution Time: <span className="text-green-400">12m 45s</span></span>
-          </div>
         </div>
 
         {/* Agent cards 2x2 */}
         <div className="grid grid-cols-2 gap-4 mb-5">
-
           {/* Watcher Analysis */}
           <div className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-4">
             <div className="flex items-center justify-between mb-3">
@@ -247,8 +229,8 @@ export default function IncidentDetail({ onNavigate }: IncidentDetailProps) {
               <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Recommended Commands</div>
               <div className="relative rounded bg-[#080d1f] border border-[#1e2d4d] p-2.5">
                 <pre className="text-[10px] text-slate-300 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
-{`kubectl rollout restart deployment/worker-service
-hpa scale up --min-h`}
+kubectl rollout restart deployment/worker-service
+hpa scale up --min-h
                 </pre>
                 <button className="absolute top-2 right-2 p-1 rounded hover:bg-white/5 transition-colors">
                   <Copy size={10} className="text-slate-500" />

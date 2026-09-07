@@ -48,10 +48,10 @@ const SCENARIO_ICONS: Record<string, React.ReactNode> = {
 function CompactScenarioCard({ scenario, onLaunch }: { scenario: IncidentScenario; onLaunch: () => void }) {
   const sev = SEVERITY_CFG[scenario.severity];
   return (
-    <div className="border border-[#1e2d4d] rounded-xl bg-[#0c1228] hover:border-cyan-500/25 transition-all duration-200 group flex flex-col">
+    <div className="border border-gray-600/30 rounded-xl bg-gray-800/50 backdrop-blur-sm hover:border-gray-600/50 transition-all duration-300 group flex flex-col hover-lift">
       <div className="p-4 flex-1">
         <div className="flex items-start justify-between mb-3">
-          <div className="w-9 h-9 rounded-lg bg-[#080d1f] border border-[#1e2d4d] flex items-center justify-center">
+          <div className="w-9 h-9 rounded-lg bg-gray-700/50 border border-gray-600/30 flex items-center justify-center">
             {SCENARIO_ICONS[scenario.id]}
           </div>
           <span className={`flex items-center gap-1 text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded border ${sev.color} ${sev.bg} ${sev.border}`}>
@@ -59,19 +59,19 @@ function CompactScenarioCard({ scenario, onLaunch }: { scenario: IncidentScenari
             {scenario.severity}
           </span>
         </div>
-        <div className="text-[9px] font-mono text-slate-600 mb-0.5">{scenario.id.toUpperCase()}</div>
+        <div className="text-[9px] font-mono text-gray-400 mb-0.5">{scenario.id.toUpperCase()}</div>
         <h3 className="text-sm font-bold text-white mb-1.5 leading-snug">{scenario.title}</h3>
-        <p className="text-[10px] text-slate-500 leading-relaxed">{scenario.description}</p>
+        <p className="text-[10px] text-gray-300 leading-relaxed">{scenario.description}</p>
       </div>
-      <div className="px-4 py-2.5 border-t border-[#1e2d4d] flex items-center justify-between">
+      <div className="px-4 py-2.5 border-t border-gray-600/20 flex items-center justify-between">
         <div className="flex gap-1.5">
           {scenario.tags.slice(0, 2).map(t => (
-            <span key={t} className="text-[8px] px-1.5 py-0.5 rounded bg-[#080d1f] border border-[#1a2540] text-slate-600 font-mono">{t}</span>
+            <span key={t} className="text-[8px] px-1.5 py-0.5 rounded bg-gray-700/30 border border-gray-600/30 text-gray-300 font-mono">{t}</span>
           ))}
         </div>
         <button
           onClick={onLaunch}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-[10px] font-bold transition-all hover:scale-105"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-[#05081a] text-[10px] font-bold transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
         >
           <Play size={9} />
           Launch
@@ -150,7 +150,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#05081a] bg-grid pt-12 pb-14">
+    <div className="min-h-screen bg-gray-950 bg-grid pt-12 pb-14">
       <div className="max-w-6xl mx-auto px-6">
 
         {/* Hero */}
@@ -168,23 +168,23 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                   Incident Response
                 </span>
               </h1>
-              <p className="text-sm text-slate-400 leading-relaxed max-w-xl mb-5">
+              <p className="text-sm text-gray-300 leading-relaxed max-w-xl mb-5">
                 When production breaks at 3 AM, IncidentMind's agents detect it, diagnose it, draft a fix, and notify your team — before a human even wakes up.
               </p>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => onNavigate('incidents')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-[#05081a] text-xs font-bold transition-all hover:scale-105 shadow-lg shadow-cyan-500/20"
+                  className="btn-primary px-6 py-3"
                 >
-                  <Zap size={12} />
+                  <Zap size={14} className="ml-2" />
                   Open War Room
                 </button>
                 <button
                   onClick={() => onNavigate('analytics')}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-400 text-xs font-medium hover:bg-cyan-500/10 transition-colors"
+                  className="btn-outline px-6 py-3"
                 >
                   View Analytics
-                  <ArrowRight size={12} />
+                  <ArrowRight size={14} className="ml-2" />
                 </button>
               </div>
             </div>
@@ -197,9 +197,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div key={s.label} className="flex items-center gap-4">
                   <div className="text-center">
                     <div className={`text-2xl font-bold font-mono ${s.color}`}>{s.val}</div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wider">{s.label}</div>
+                    <div className="text-[10px] text-gray-400 uppercase tracking-wider">{s.label}</div>
                   </div>
-                  {i < arr.length - 1 && <div className="w-px h-10 bg-[#1e2d4d]" />}
+                  {i < arr.length - 1 && <div className="w-px h-10 bg-gray-600/30" />}
                 </div>
               ))}
             </div>
@@ -207,13 +207,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         </div>
 
         {/* Agent Chain Visualizer */}
-        <div className="mb-6 border border-[#1e2d4d] rounded-xl bg-[#0c1228] p-4">
+        <div className="mb-6 border border-gray-600/30 rounded-xl bg-gray-800/50 backdrop-blur-sm p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Activity size={12} className="text-cyan-400" />
-              <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Agent Chain</span>
+              <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">Agent Chain</span>
             </div>
-            <span className="text-[10px] text-slate-500 font-mono">Sequential context passing — no shared state</span>
+            <span className="text-[10px] text-gray-400 font-mono">Sequential context passing — no shared state</span>
           </div>
           <div className="flex items-stretch gap-0">
             {AGENT_CHAIN.map((agent, i) => {
@@ -223,29 +223,29 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 <div key={agent.name} className="flex items-center flex-1">
                   <div className={`flex-1 rounded-xl border p-3 transition-all duration-500 ${
                     isActive ? `${agent.bg} ${agent.border} shadow-lg` :
-                    isDone ? 'bg-[#080d1f] border-green-500/15' :
-                    'bg-[#080d1f] border-[#1a2540]'
+                    isDone ? 'bg-gray-700/20 border-green-500/15' :
+                    'bg-gray-700/30 border-gray-600/30'
                   }`}>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 border ${
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 border ${
                       isActive ? `${agent.bg} ${agent.border}` :
                       isDone ? 'bg-green-500/10 border-green-500/20' :
-                      'bg-[#0c1228] border-[#1e2d4d]'
+                      'bg-gray-800/50 border-gray-600/30'
                     }`}>
                       {isDone
-                        ? <CheckCircle size={13} className="text-green-400" />
-                        : <agent.icon size={13} className={isActive ? agent.color : 'text-slate-600'} />
+                        ? <CheckCircle size={14} className="text-green-400" />
+                        : <agent.icon size={14} className={isActive ? agent.color : 'text-gray-400'} />
                       }
                     </div>
-                    <div className={`text-[11px] font-semibold mb-0.5 ${isActive ? agent.color : isDone ? 'text-slate-400' : 'text-slate-600'}`}>{agent.name}</div>
-                    <div className="text-[9px] text-slate-600">{agent.role}</div>
+                    <div className={`text-[11px] font-semibold mb-0.5 ${isActive ? agent.color : isDone ? 'text-gray-300' : 'text-gray-400'}`}>{agent.name}</div>
+                    <div className="text-[9px] text-gray-400">{agent.role}</div>
                     {isActive && (
-                      <div className="mt-1.5 h-0.5 rounded-full bg-[#1e2d4d] overflow-hidden">
+                      <div className="mt-1.5 h-0.5 rounded-full bg-gray-600/30 overflow-hidden">
                         <div className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 animate-pulse" style={{ width: `${55 + (tick % 5) * 8}%` }} />
                       </div>
                     )}
                   </div>
                   {i < AGENT_CHAIN.length - 1 && (
-                    <ArrowRight size={12} className={`mx-2 shrink-0 ${isDone ? 'text-cyan-500/50' : 'text-slate-700'}`} />
+                    <ArrowRight size={12} className={`mx-2 shrink-0 ${isDone ? 'text-cyan-500/50' : 'text-gray-500'}`} />
                   )}
                 </div>
               );
@@ -261,13 +261,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Zap size={12} className="text-cyan-400" />
-                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Incident Scenarios</span>
+                <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">Incident Scenarios</span>
               </div>
               <button
                 onClick={() => onNavigate('incidents')}
-                className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors duration-200"
               >
-                Open War Room <ChevronRight size={10} />
+                Open War Room <ChevronRight size={10} className="ml-1" />
               </button>
             </div>
             <div className="grid grid-cols-3 gap-4">
@@ -288,42 +288,43 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Radio size={12} className="text-cyan-400" />
-                  <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">Recent</span>
+                  <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">Recent</span>
                 </div>
                 <button
                   onClick={() => onNavigate('history')}
-                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors"
+                  className="text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors duration-200"
                 >
-                  All <ChevronRight size={10} />
+                  All <ChevronRight size={10} className="ml-1" />
                 </button>
               </div>
+
               <div className="space-y-1.5">
                 {loadingRecent ? (
                   <div className="space-y-1.5">
                     {[1,2,3].map(i => (
-                      <div key={i} className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-2.5 animate-pulse">
-                        <div className="h-3 w-1/4 bg-[#1e2d4d] rounded mb-1" />
-                        <div className="h-4 w-3/4 bg-[#1e2d4d] rounded" />
+                      <div key={i} className="border border-gray-600/30 rounded-lg bg-gray-800/50 backdrop-blur-sm p-2.5 animate-pulse">
+                        <div className="h-3 w-1/4 bg-gray-600/30 rounded mb-1" />
+                        <div className="h-4 w-3/4 bg-gray-600/30 rounded" />
                         <div className="flex items-center justify-between mt-1">
-                          <div className="h-2 w-1/3 bg-[#1e2d4d] rounded" />
-                          <div className="h-2 w-1/4 bg-[#1e2d4d] rounded" />
+                          <div className="h-2 w-1/3 bg-gray-600/30 rounded" />
+                          <div className="h-2 w-1/4 bg-gray-600/30 rounded" />
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : recentIncidents.length === 0 ? (
-                  <div className="text-center py-4 text-slate-500 text-sm">No recent incidents</div>
+                  <div className="text-center py-4 text-gray-400 text-sm">No recent incidents</div>
                 ) : (
                   recentIncidents.map(inc => (
-                    <div key={inc.incidentId} className="border border-[#1e2d4d] rounded-lg bg-[#0c1228] p-2.5 hover:border-cyan-500/20 cursor-pointer transition-colors" onClick={() => onNavigate('history')}>
+                    <div key={inc.incidentId} className="border border-gray-600/30 rounded-lg bg-gray-800/50 backdrop-blur-sm hover:border-gray-600/40 cursor-pointer transition-colors duration-200 hover-lift" onClick={() => onNavigate('history')}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[9px] font-mono text-slate-500">#{inc.incidentId}</span>
+                        <span className="text-[9px] font-mono text-gray-400">#{inc.incidentId}</span>
                         <span className={`text-[9px] font-medium ${statusColor[getStatusLabel(inc.status)]}`}>{getStatusLabel(inc.status)}</span>
                       </div>
-                      <div className="text-[11px] text-slate-300 font-medium leading-snug">{inc.title}</div>
+                      <div className="text-[11px] text-gray-300 font-medium leading-snug">{inc.title}</div>
                       <div className="flex items-center justify-between mt-1">
-                        <span className={`text-[8px] uppercase font-semibold ${SEVERITY_CFG[getSeverityLabel(inc.severity) as keyof typeof SEVERITY_CFG]?.color || 'text-slate-500'}`}>{getSeverityLabel(inc.severity)}</span>
-                        <span className="text-[9px] font-mono text-slate-600">{formatMttr(inc.mttrSeconds)}</span>
+                        <span className={`text-[8px] uppercase font-semibold ${SEVERITY_CFG[getSeverityLabel(inc.severity) as keyof typeof SEVERITY_CFG]?.color || 'text-gray-400'}`}>{getSeverityLabel(inc.severity)}</span>
+                        <span className="text-[9px] font-mono text-gray-400">{formatMttr(inc.mttrSeconds)}</span>
                       </div>
                     </div>
                   ))
@@ -332,10 +333,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             </div>
 
             {/* System status */}
-            <div className="border border-[#1e2d4d] rounded-xl bg-[#0c1228] p-3">
+            <div className="border border-gray-600/30 rounded-xl bg-gray-800/50 backdrop-blur-sm p-3">
               <div className="flex items-center gap-2 mb-3">
                 <BarChart2 size={12} className="text-cyan-400" />
-                <span className="text-[11px] font-semibold text-slate-300 uppercase tracking-wider">System Status</span>
+                <span className="text-[11px] font-semibold text-gray-300 uppercase tracking-wider">System Status</span>
               </div>
               <div className="space-y-2">
                 {[
@@ -345,10 +346,10 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 ].map(m => (
                   <div key={m.label}>
                     <div className="flex justify-between text-[10px] mb-1">
-                      <span className="text-slate-500">{m.label}</span>
-                      <span className="text-slate-300 font-mono font-semibold">{m.val}</span>
+                      <span className="text-gray-300">{m.label}</span>
+                      <span className="text-gray-200 font-mono font-semibold">{m.val}</span>
                     </div>
-                    <div className="h-1 rounded-full bg-[#1e2d4d] overflow-hidden">
+                    <div className="h-1 rounded-full bg-gray-600/30 overflow-hidden">
                       <div className={`h-full rounded-full bg-gradient-to-r ${m.color}`} style={{ width: `${m.pct}%` }} />
                     </div>
                   </div>
@@ -361,21 +362,21 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
         {/* One-line pitch */}
         <div className="mt-6 border border-cyan-500/15 rounded-xl bg-cyan-500/5 px-5 py-3.5 flex items-center gap-4">
           <AlertTriangle size={16} className="text-cyan-400 shrink-0" />
-          <p className="text-sm text-slate-400 italic">
+          <p className="text-sm text-gray-300 italic">
             "When your production system breaks at 3 AM, IncidentMind's agents detect it, diagnose it, draft a fix, and notify your team — before a human even wakes up."
           </p>
         </div>
       </div>
 
       {/* Bottom bar */}
-      <div className="fixed bottom-0 left-0 right-0 h-8 flex items-center px-4 border-t border-[#1e2d4d] bg-[#05081a] z-40">
-        <div className="flex items-center gap-4 text-[10px] font-mono text-slate-600 w-full">
+      <div className="fixed bottom-0 left-0 right-0 h-8 flex items-center px-4 border-t border-gray-600/20 bg-gray-950 z-40">
+        <div className="flex items-center gap-4 text-[10px] font-mono text-gray-400 w-full">
           <span className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-400" />AGENTS ONLINE</span>
-          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <div className="w-px h-4 bg-gray-600/20" />
           <span>5 AGENTS ACTIVE</span>
-          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <div className="w-px h-4 bg-gray-600/20" />
           <span>SSE TRANSPORT READY</span>
-          <div className="w-px h-4 bg-[#1e2d4d]" />
+          <div className="w-px h-4 bg-gray-600/20" />
           <span className="text-cyan-400/60">BACKEND: {(import.meta.env.VITE_BACKEND_URL as string | undefined) ?? 'http://localhost:3001'}</span>
           <div className="flex-1" />
           <span>© 2026 IncidentMind AI Operations</span>
