@@ -1,0 +1,26 @@
+services:
+  # Frontend Service
+  - type: web
+    name: incidentmind-frontend
+    runtime: node
+    rootDir: Frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run preview -- --port $PORT --host
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://incidentmind-backend.onrender.com
+
+  # Backend Service
+  - type: web
+    name: incidentmind-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: MONGODB_URI
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
